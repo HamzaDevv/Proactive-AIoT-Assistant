@@ -1,9 +1,76 @@
-# Proactive-AIoT-Assistant
+# 🌐 Sadaf: A Proactive AIoT Assistant
 
-Sadaf: A Proactive AIoT AssistantSadaf is an intelligent AIoT (Artificial Intelligence of Things) orchestrator. Instead of just reacting to your commands, Sadaf intelligently anticipates your needs by fusing real-time data from your personal devices (like smartwatches and calendars) with your home environment.It's a centralized "brain" designed to move beyond simple, reactive commands (e.g., "Turn on the light") to proactive, anticipatory support (e.g., "I see you're stressed; should I dim the lights?").The Problem We SolveCurrent "smart" devices are not truly intelligent—they are just connected. They operate in isolated data silos:Your smartwatch knows you had a bad night's sleep, but your coffee maker doesn't.Your calendar knows you have a stressful meeting, but your smart lights don't.Your voice assistant forgets what you told it yesterday.Sadaf solves this by breaking down data silos. It creates a single, context-aware system that understands your holistic state and learns your preferences over time.Core Concept: The Sense-Think-Act LoopSadaf operates on a simple, powerful, continuous loop:SENSE: Gathers real-time, siloed data from multiple sources:Biometric: Smartwatch data (heart rate, sleep, activity).Contextual: Location & ETA (Google Maps).Schedule: Upcoming events (Google Calendar).Environmental: (Future) Air quality, temperature from sensors.THINK: Uses a Large Language Model (LLM) and a long-term vector memory (ChromaDB) to reason about this context. It combines what is happening now with what you prefer to anticipate a potential need.ACT: Proactively suggests an action via voice (e.g., "You're home from your run; should I start the bath?"). With your "Yes" confirmation, it then commands the physical IoT devices (via MQTT) to execute the task.Key FeaturesProactive Suggestions: Anticipates needs based on real-time, fused data.Long-Term Memory: Uses ChromaDB to remember your preferences, habits, and key facts.Human-in-the-Loop: Always asks for confirmation before acting, building user trust and ensuring safety.Extensible Tool System: Designed to easily add new APIs (Senses) or devices (Actions).Decoupled IoT Control: Uses the lightweight, scalable MQTT protocol to communicate with hardware (like ESP32, Raspberry Pi, or smart plugs).Tech StackCore Logic: PythonReasoning Engine: Large Language Model (Ollama, Gemini)Memory: ChromaDB (Vector Database)Data APIs: Google Fit, Google Maps, Google CalendarIoT Protocol: MQTTVoice I/O: SpeechRecognition & pyttsx3 (or macOS say)Architecture & Modular BreakdownThis project is split into three core modules, perfect for a team to develop in parallel.Module 1: The "SENSE" Layer (Data & API Integration)Owner: [Team Member 1]Description: This module is the "senses" of the AI. It is responsible for all data input from the outside world.Key Files: tools/google_fit.py, tools/google_maps.py, tools/google_calendar.pyResponsibilities:Implement robust API clients for Google Fit (biometrics), Maps (location), and Calendar (schedule).Create simple, standardized functions (e.g., get_user_status(), get_upcoming_events()) for the "Think" module to call.Module 2: The "THINK" Layer (Core AI & Memory)Owner: [Team Member 2]Description: This module is the "brain." It orchestrates the main application, makes decisions, and manages memory.Key Files: main.py, memory/conversational_memory.py, memory/knowledge_base.pyResponsibilities:Build the main async loop in main.py.Fetch data from the SENSE module.Implement the ChromaDB logic to store and retrieve user preferences.Build the core prompt engineering logic that combines all context for the LLM.Process the LLM's response and pass commands to the ACT module.Module 3: The "ACT" Layer (Interface & IoT Control)Owner: [Team Member 3]Description: This module is the "hands and voice." It is responsible for all output to the user and the physical world.Key Files: speak.py, listen.py, iot_control.py (or tools/mqtt_client.py)Responsibilities:Implement the voice functions to make proactive suggestions and capture the user's "Yes/No" feedback.Set up the MQTT Client (Publisher) to send standardized commands (e.g., home/lights/set 'on').(Future) Set up an MQTT Subscriber to listen for data from simple hardware sensors.Setup & InstallationClone the repository:git clone [https://github.com/HamzaDevv/IOT-Sadaf-BOT.git](https://github.com/HamzaDevv/IOT-Sadaf-BOT.git)
-cd IOT-Sadaf-BOT
-Create a virtual environment:python3 -m venv venv
-source venv/bin/activate
-Install requirements:pip install -r requirements.txt
-Set up API Keys:Rename .env.example to .env.Add your API keys for Google Maps, Google Fit, Google Calendar, and Gemini (if using).Run Ollama (if using):Ensure the Ollama service is running and you have pulled a model (e.g., ollama pull llama3).Run the Assistant:python3 main.py
-Future WorkAdd More Senses: Integrate with simple, local MQTT-based sensors (air quality, temperature, light level).Add More Actions: Expand MQTT control to kitchen appliances, smart blinds, and media centers.Refine Memory: Implement "negative feedback" to learn from when a user says "No" to a suggestion.
+**Sadaf** is an intelligent **AIoT (Artificial Intelligence of Things)** orchestrator — a centralized "brain" that moves beyond reactive smart assistants toward *proactive, context-aware support*.  
+It doesn’t just respond to your commands; it *anticipates your needs* by fusing real-time data from your personal devices and environment.
+
+---
+
+## 🚀 The Problem We Solve
+
+Current “smart” devices are merely *connected*, not *intelligent*. They live in isolated data silos:
+
+- Your **smartwatch** knows you slept poorly — but your **coffee maker** doesn’t.
+- Your **calendar** knows you have a stressful meeting — but your **smart lights** don’t.
+- Your **voice assistant** forgets what you told it yesterday.
+
+**Sadaf** breaks down these silos to create a unified, *context-aware* ecosystem that understands your holistic state and learns your preferences over time.
+
+---
+
+## 🧠 Core Concept: The Sense–Think–Act Loop
+
+Sadaf operates on a simple but powerful continuous loop:
+
+### 1. **SENSE**
+Gathers real-time data from multiple sources:
+- **Biometric:** Smartwatch (heart rate, sleep, activity)
+- **Contextual:** Location & ETA (Google Maps)
+- **Schedule:** Events (Google Calendar)
+- **Environmental (Future):** Air quality, temperature, light level sensors
+
+### 2. **THINK**
+Processes all this information using:
+- **Large Language Model (LLM):** (Ollama, Gemini)
+- **Long-Term Vector Memory:** (ChromaDB)
+  
+This layer reasons about your *context* and *preferences* to anticipate what you might need next.
+
+### 3. **ACT**
+Executes or suggests actions:
+- Voice prompt: _“You’re home from your run; should I start the bath?”_
+- With confirmation, it controls IoT devices via **MQTT**.
+
+---
+
+## 🌟 Key Features
+
+✅ **Proactive Suggestions** — Anticipates needs from fused, real-time data.  
+🧠 **Long-Term Memory** — Learns habits and preferences via ChromaDB.  
+🙋 **Human-in-the-Loop** — Always asks for confirmation before acting.  
+🔌 **Extensible Tool System** — Easily add new APIs or devices.  
+📡 **Decoupled IoT Control** — Uses lightweight MQTT for scalable communication.  
+
+---
+
+## 🧩 Architecture & Modular Breakdown
+
+Sadaf is built around three core modules — ideal for parallel team development.
+
+---
+
+### **Module 1: The “SENSE” Layer** — *Data & API Integration*
+
+**Owner:** [Team Member 1]  
+**Description:** The “senses” of the AI — handles all external data input.  
+
+**Key Files:**  
+- `tools/google_fit.py`  
+- `tools/google_maps.py`  
+- `tools/google_calendar.py`  
+
+**Responsibilities:**
+- Implement API clients for Google Fit, Maps, and Calendar.  
+- Provide standardized interfaces like:
+  ```python
+  get_user_status()
+  get_upcoming_events()
