@@ -1,52 +1,46 @@
-Here you go — a **clean, polished, production-ready GitHub `README.md`** with proper markdown formatting, structured sections, and clarity that makes the project look professional and credible.
-(The content is rewritten to be sharper and more GitHub-friendly.)
-
----
-
-# **Sadaf — Proactive AIoT Assistant**
+# Sadaf — Proactive AIoT Assistant
 
 *A modular, context-aware, human-in-the-loop AI assistant for smart environments.*
 
-Sadaf is a next-generation **Proactive AIoT Assistant** built on a clear **SENSE → THINK → ACTION** pipeline.
-Instead of waiting for voice commands, Sadaf continuously interprets real-world context, reasons using a multi-stage LLM pipeline, learns from user behavior, and triggers safe, helpful actions on IoT devices.
+Sadaf is a next-generation **Proactive AIoT Assistant** built on a clear **SENSE → THINK → ACTION** pipeline. Instead of waiting for voice commands, Sadaf continuously interprets real-world context, reasons using a multi-stage LLM pipeline, learns from user behavior, and triggers safe, helpful actions on IoT devices.
 
 ---
 
-## ✅ **Key Capabilities**
+## ✨ Key Capabilities
 
-* **Context-aware proactive suggestions** (based on biometrics, location, environment, schedule)
-* **Modular plugin-based SENSE layer** (easily add new sensors)
-* **Two-pass LLM reasoning pipeline** (intent → structured action)
-* **Adaptive long-term memory with ChromaDB**
-* **Hard safety rule layer** to prevent harmful actions
-* **Human-in-the-loop actions** for full user control
-* **Real-time state updates** via WebSockets/SSE
-* **Device Simulator** for easy development without real hardware
+- **Context-aware proactive suggestions** (based on biometrics, location, environment, schedule)
+- **Modular plugin-based SENSE layer** (easily add new sensors)
+- **Two-pass LLM reasoning pipeline** (intent → structured action)
+- **Adaptive long-term memory with ChromaDB**
+- **Hard safety rule layer** to prevent harmful actions
+- **Human-in-the-loop actions** for full user control
+- **Real-time state updates** via WebSockets/SSE
+- **Device Simulator** for easy development without real hardware
 
 ---
 
-# 🧠 **High-Level System Architecture**
+## 🏗️ High-Level System Architecture
 
-### **SENSE → THINK → ACTION**
+### SENSE → THINK → ACTION
 
 ```mermaid
 graph TD;
     subgraph SENSE Layer
-        A[Sensor Plugins<br>(Fit, Maps, Calendar, CCTV)] --> B[FastAPI Context Gateway];
+        A[Sensor Plugins<br/>Fit, Maps, Calendar, CCTV] --> B[FastAPI Context Gateway];
         B --> C[Context Packet Builder];
     end
 
     subgraph THINK Layer
         C --> D[Decision Graph];
         D --> E[LLM Reasoning Pipeline];
-        E --> F[Vector Memory (ChromaDB)];
+        E --> F[Vector Memory ChromaDB];
         F --> G[Safety Rules];
     end
 
     subgraph ACTION Layer
         G --> H[Action Manager];
-        H --> I[IoT Devices (Simulated)];
-        H --> J[Frontend (Web/App)];
+        H --> I[IoT Devices Simulated];
+        H --> J[Frontend Web/App];
     end
 
     I --> A
@@ -55,105 +49,96 @@ graph TD;
 
 ---
 
-# 🔍 **Module Breakdown**
+## 🔍 Module Breakdown
 
-## 🔸 **1. SENSE Layer**
+### 🔸 SENSE Layer
 
 Collects and normalizes sensor data from:
 
-* Google Fit
-* Maps (Travel time, location)
-* Calendar events
-* Occupancy/CCTV
-* Mobile state / battery
-* Custom user-defined sensors
+- Google Fit
+- Maps (Travel time, location)
+- Calendar events
+- Occupancy/CCTV
+- Mobile state / battery
+- Custom user-defined sensors
 
 Produces a unified **Context Packet** with confidence scores.
 
----
-
-## 🔸 **2. THINK Layer**
+### 🔸 THINK Layer
 
 This is the "brain":
 
-* **Decision Graph** handles simple deterministic logic
-* **Two-Pass LLM Pipeline**
+- **Decision Graph** handles simple deterministic logic
+- **Two-Pass LLM Pipeline**
+  - **Pass 1:** Analyze context → produce intention + explanation
+  - **Pass 2:** Convert intention → strict JSON action schema
+- **Vector Memory** learns from user "Yes/No" feedback
+- **Safety Rule Layer** blocks harmful or illogical actions
 
-  * **Pass 1:** Analyze context → produce intention + explanation
-  * **Pass 2:** Convert intention → strict JSON action schema
-* **Vector Memory** learns from user "Yes/No" feedback
-* **Safety Rule Layer** blocks harmful or illogical actions
-
----
-
-## 🔸 **3. ACTION Layer**
+### 🔸 ACTION Layer
 
 Executes validated, safe actions:
 
-* Talks to simulated or real IoT devices
-* Ensures parameters match device capability schema
-* Streams updates to React frontend
-* Logs every decision for debugging
+- Talks to simulated or real IoT devices
+- Ensures parameters match device capability schema
+- Streams updates to React frontend
+- Logs every decision for debugging
 
 ---
 
-# 🚀 **Getting Started**
+## 🚀 Getting Started
 
-## ✅ Requirements
+### Prerequisites
 
-* **Python 3.11+**
-* **pip or Poetry**
-* **Google AI Studio API Key (Gemini)**
+- **Python 3.11+**
+- **pip or Poetry**
+- **Google AI Studio API Key (Gemini)**
 
----
+### Installation
 
-## ✅ Installation
-
-### **1. Clone Repository**
+**1. Clone Repository**
 
 ```bash
 git clone https://github.com/HamzaDevv/Proactive-AIoT-Assistant.git
 cd Proactive-AIoT-Assistant
 ```
 
-### **2. Create Virtual Environment**
+**2. Create Virtual Environment**
 
 ```bash
 python -m venv venv
 ```
 
-* Windows → `.\venv\Scripts\activate`
-* macOS/Linux → `source venv/bin/activate`
+- Windows: `.\venv\Scripts\activate`
+- macOS/Linux: `source venv/bin/activate`
 
-### **3. Install Dependencies**
+**3. Install Dependencies**
 
 ```bash
 pip install -r requirements.txt
 ```
 
-### **4. Setup Environment Variables**
+**4. Setup Environment Variables**
 
 Create `.env` in your project root:
 
 ```env
-GOOGLE_API_KEY="YOUR_GEMINI_API_KEY_HERE"
+GOOGLE_API_KEY=YOUR_GEMINI_API_KEY_HERE
 ```
 
-### **5. Run Server**
+**5. Run Server**
 
 ```bash
 uvicorn src.main:app --reload
 ```
 
-App starts at:
-👉 **[http://127.0.0.1:8000](http://127.0.0.1:8000)**
+App starts at: **http://127.0.0.1:8000**
 
-API docs available at:
-👉 **[http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)**
+API docs available at: **http://127.0.0.1:8000/docs**
 
 ---
 
-# 📁 **Project Structure**
+## 📁 Project Structure
 
 ```
 Proactive-AIoT-Assistant/
@@ -166,7 +151,7 @@ Proactive-AIoT-Assistant/
     │
     ├── core/
     │   ├── schemas.py
-    │   ├── logging_config.py
+    │   └── logging_config.py
     │
     ├── module_1_sense/
     │   ├── sense_manager.py
@@ -192,9 +177,9 @@ Proactive-AIoT-Assistant/
 
 ---
 
-# 🔧 **Basic Files**
+## 🔧 Configuration Files
 
-### ✅ `.gitignore`
+### .gitignore
 
 ```
 venv/
@@ -206,7 +191,7 @@ __pycache__/
 .idea/
 ```
 
-### ✅ `requirements.txt`
+### requirements.txt
 
 ```
 fastapi
@@ -221,20 +206,47 @@ google-auth-oauthlib
 
 ---
 
-# 📝 **License**
+## 📖 Usage
 
-This project is licensed under the **MIT License**.
+Once the server is running, the system will:
+
+1. Continuously collect context from configured sensors
+2. Analyze the context using the LLM reasoning pipeline
+3. Generate proactive suggestions based on learned patterns
+4. Present actions to the user for approval
+5. Execute approved actions on IoT devices
+6. Learn from user feedback to improve future suggestions
 
 ---
 
-# 🙌 Want to Continue?
+## 🤝 Contributing
 
-I can generate:
+Contributions are welcome! Please feel free to submit a Pull Request.
 
-✅ `src/main.py` (FastAPI entrypoint)
-✅ Full Pydantic schemas for Context Packet
-✅ Device Simulator code
-✅ Memory + LLM pipeline
-✅ React frontend starter template
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
 
-Which file should I generate next?
+---
+
+## 📄 License
+
+This project is licensed under the **MIT License** - see the LICENSE file for details.
+
+---
+
+## 🙏 Acknowledgments
+
+- Built with FastAPI and Google Generative AI
+- Uses ChromaDB for vector memory
+- Inspired by the vision of truly intelligent smart homes
+
+---
+
+## 📧 Contact
+
+For questions or support, please open an issue on GitHub.
+
+**Project Link:** [https://github.com/HamzaDevv/Proactive-AIoT-Assistant](https://github.com/HamzaDevv/Proactive-AIoT-Assistant)
