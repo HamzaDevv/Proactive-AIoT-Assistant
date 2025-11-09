@@ -1,0 +1,145 @@
+{
+  "devices": [
+    {
+      "id": "smart_light_1",
+      "functions": [
+        "on",
+        "off",
+        "set_brightness",
+        "set_color_temp",
+        "auto_off",
+        "motion_triggered"
+      ],
+      "parameters": {
+        "brightness": [
+          0,
+          100
+        ],
+        "color_temperature": [
+          2700,
+          6500
+        ],
+        "auto_off_timer": [
+          1,
+          120
+        ]
+      }
+    },
+    {
+      "id": "smart_fan_1",
+      "functions": [
+        "on",
+        "off",
+        "set_speed",
+        "auto_mode"
+      ],
+      "parameters": {
+        "speed": [
+          0,
+          100
+        ]
+      }
+    },
+    {
+      "id": "smart_ac_1",
+      "functions": [
+        "set_mode",
+        "set_temperature",
+        "eco_mode",
+        "schedule"
+      ],
+      "parameters": {
+        "mode": [
+          "cool",
+          "heat",
+          "dry",
+          "fan"
+        ],
+        "temperature": [
+          16,
+          30
+        ],
+        "schedule_time": [
+          "HH:MM"
+        ]
+      }
+    },
+    {
+      "id": "smart_heater_1",
+      "functions": [
+        "on",
+        "off",
+        "set_intensity",
+        "auto_temp_mode"
+      ],
+      "parameters": {
+        "intensity": [
+          0,
+          100
+        ],
+        "target_temperature": [
+          20,
+          32
+        ]
+      }
+    },
+    {
+      "id": "smart_plug_1",
+      "functions": [
+        "on",
+        "off"
+      ],
+      "parameters": {
+        "safe_energy_threshold_watts": [
+          10,
+          3000
+        ]
+      }
+    },
+    {
+      "id": "smart_geyser_1",
+      "functions": [
+        "on",
+        "off",
+        "set_temperature"
+      ],
+      "parameters": {
+        "temperature": [
+          30,
+          75
+        ]
+      }
+    },
+    {
+      "id": "smart_humidifier_1",
+      "functions": [
+        "on",
+        "off",
+        "set_humidity"
+      ],
+      "parameters": {
+        "humidity_target": [
+          30,
+          80
+        ]
+      }
+    },
+    {
+      "id": "smart_induction_1",
+      "functions": [
+        "set_heat_level",
+        "set_timer"
+      ],
+      "parameters": {
+        "heat_level": [
+          1,
+          10
+        ],
+        "timer_minutes": [
+          1,
+          120
+        ]
+      }
+    }
+  ]
+}

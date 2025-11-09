@@ -1,0 +1,30 @@
+sadaf_assistant/
+├── README.md
+├── requirements.txt
+├── run.py                 # <-- Main script to start all modules
+│
+├── common/
+│   ├── __init__.py
+│   └── schemas.py         # <-- Shared Pydantic schemas (from your .py file)
+│
+├── SENSE_module/
+│   ├── __init__.py
+│   ├── sense_api.py       # <-- FastAPI gateway for sensing
+│   ├── sense_aggregator.py # <-- Logic to build ContextPacket
+│   └── plugins/
+│       ├── __init__.py
+│       ├── base_plugin.py
+│       ├── calendar_plugin.py
+│       ├── camera_plugin.py
+│       └── fit_plugin.py
+│
+├── THINK_module/
+│   ├── __init__.py
+│   ├── think_orchestrator.py # <-- Your 'sadaf_think_module.py' (slightly modified)
+│   └── think_service.py      # <-- FastAPI service to run the THINK logic
+│
+└── ACTION_module/
+    ├── __init__.py
+    ├── action_api.py      # <-- FastAPI for device control and frontend
+    ├── device_manager.py  # <-- Simulates all IoT devices and logs
+    └── index.html         # <-- Simple frontend to see state changes

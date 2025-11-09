@@ -1,0 +1,30 @@
+# API Framework
+fastapi==0.115.5
+uvicorn[standard]==0.32.0
+
+# HTTP Client
+httpx>=0.25.1
+requests>=2.31.0
+
+# Data Validation
+pydantic>=2.4.2
+python-dateutil==2.9.0.post0
+
+# Vector Database
+chromadb>=0.4.15
+
+# Google Services
+google-api-python-client==2.151.0
+google-auth==2.35.0
+google-auth-oauthlib==1.2.1
+google-generativeai>=0.2.0
+googlemaps>=4.10.0
+
+# LangChain Packages
+langchain==0.0.325
+langchain-core==0.0.8
+langchain-community==0.0.8
+langchain-google-genai==0.0.3
+
+# Environment Variables
+python-dotenv>=1.0.0
