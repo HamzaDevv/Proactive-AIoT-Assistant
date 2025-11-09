@@ -1,5 +1,6 @@
 # Sadaf — Proactive AIoT Assistant
 
+ppt link -> https://docs.google.com/presentation/d/1XI0REYW7NCei7vNISOm6jmkpwAEqDLCSjojr-nMHELA/edit?usp=sharing
 *A modular, context-aware, human-in-the-loop AI assistant for smart environments.*
 
 Sadaf is a next-generation **Proactive AIoT Assistant** built on a clear **SENSE → THINK → ACTION** pipeline. Instead of waiting for voice commands, Sadaf continuously interprets real-world context, reasons using a multi-stage LLM pipeline, learns from user behavior, and triggers safe, helpful actions on IoT devices.
