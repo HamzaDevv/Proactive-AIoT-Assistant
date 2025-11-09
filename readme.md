@@ -1,238 +1,240 @@
-Proactive AIoT Assistant (Sadaf)
-An intelligent, proactive assistant that senses user and environmental context, thinks using a reasoning-and-memory pipeline, and takes safe, human-in-the-loop actions on IoT devices.
+Here you go — a **clean, polished, production-ready GitHub `README.md`** with proper markdown formatting, structured sections, and clarity that makes the project look professional and credible.
+(The content is rewritten to be sharper and more GitHub-friendly.)
 
-This repository contains the source code for Sadaf, a modular AIoT assistant built with FastAPI, Gemini, and ChromaDB. It is designed to be extensible, reliable, and safe, moving beyond simple voice commands to provide proactive, contextual help.
+---
 
-🏛️ Core Architecture
-The system is built on a clear, three-module "SENSE-THINK-ACTION" pipeline, inspired by human cognition.
+# **Sadaf — Proactive AIoT Assistant**
 
-Code snippet
+*A modular, context-aware, human-in-the-loop AI assistant for smart environments.*
 
+Sadaf is a next-generation **Proactive AIoT Assistant** built on a clear **SENSE → THINK → ACTION** pipeline.
+Instead of waiting for voice commands, Sadaf continuously interprets real-world context, reasons using a multi-stage LLM pipeline, learns from user behavior, and triggers safe, helpful actions on IoT devices.
+
+---
+
+## ✅ **Key Capabilities**
+
+* **Context-aware proactive suggestions** (based on biometrics, location, environment, schedule)
+* **Modular plugin-based SENSE layer** (easily add new sensors)
+* **Two-pass LLM reasoning pipeline** (intent → structured action)
+* **Adaptive long-term memory with ChromaDB**
+* **Hard safety rule layer** to prevent harmful actions
+* **Human-in-the-loop actions** for full user control
+* **Real-time state updates** via WebSockets/SSE
+* **Device Simulator** for easy development without real hardware
+
+---
+
+# 🧠 **High-Level System Architecture**
+
+### **SENSE → THINK → ACTION**
+
+```mermaid
 graph TD;
-    subgraph SENSE Layer (Module 1)
-        direction TB
-        A[Sensors (Google Fit, Maps, CCTV)] --> B(FastAPI Gateway);
+    subgraph SENSE Layer
+        A[Sensor Plugins<br>(Fit, Maps, Calendar, CCTV)] --> B[FastAPI Context Gateway];
         B --> C[Context Packet Builder];
     end
-    subgraph THINK Layer (Module 2)
-        direction TB
-        C --> D{Decision Graph};
-        D --> E[LLM Pipeline (Gemini)];
+
+    subgraph THINK Layer
+        C --> D[Decision Graph];
+        D --> E[LLM Reasoning Pipeline];
         E --> F[Vector Memory (ChromaDB)];
-        F --> G[Safety Rule Layer];
+        F --> G[Safety Rules];
     end
-    subgraph ACTION Layer (Module 3)
-        direction TB
-        G --> H(Action API);
+
+    subgraph ACTION Layer
+        G --> H[Action Manager];
         H --> I[IoT Devices (Simulated)];
-        H --> J[React Frontend];
+        H --> J[Frontend (Web/App)];
     end
 
-    %% Feedback Loops
-    I --> A;
-    J -- User Feedback --> F;
-✨ Key Features
-Proactive & Context-Aware: Instead of waiting for commands, the assistant monitors the "Context Packet" (biometrics, location, schedule, environment) to proactively suggest actions.
+    I --> A
+    J --> F
+```
 
-Extensible Plugin System: The SENSE layer is built as a plugin system, making it easy to add new sensors (e.g., air_quality.py, light_sensor.py) without rewriting core logic.
+---
 
-Safety-First Reasoning: The THINK layer uses a "Decision Graph" for preliminary logic and a "Safety Rule Layer" to hard-code critical rules (e.g., "Never turn off the refrigerator"), reducing LLM hallucinations.
+# 🔍 **Module Breakdown**
 
-Adaptive Memory: Learns from user acceptance ("Yes") and rejection ("No") by storing preferences in a ChromaDB vector store, preventing repeated bad suggestions.
+## 🔸 **1. SENSE Layer**
 
-Human-in-the-Loop: All proactive actions are presented as suggestions to the user for confirmation, maintaining user control.
+Collects and normalizes sensor data from:
 
-Real-time & Observable: The ACTION layer uses WebSockets/SSE to stream state changes instantly to the frontend and maintains detailed action logs for debugging.
+* Google Fit
+* Maps (Travel time, location)
+* Calendar events
+* Occupancy/CCTV
+* Mobile state / battery
+* Custom user-defined sensors
 
-🔧 Technical Deep Dive
-1. SENSE Layer (Module 1)
-This module's sole job is to gather data, normalize it, and package it.
+Produces a unified **Context Packet** with confidence scores.
 
-Data Sources: Integrates with APIs like Google Fit, Calendar, and Maps, as well as sensors like cameras and mobile device states.
+---
 
-Context Packet: All data is bundled into a single, timestamped ContextPacket object every cycle. This packet includes "Confidence Scores" for each piece of data to handle sensor noise.
+## 🔸 **2. THINK Layer**
 
-Gateway: A FastAPI endpoint serves as the main entry point for all sensor data.
+This is the "brain":
 
-2. THINK Layer (Module 2)
-This is the brain of the assistant. It receives the ContextPacket and decides what to do.
+* **Decision Graph** handles simple deterministic logic
+* **Two-Pass LLM Pipeline**
 
-Technology: Gemini Flash 2.0, ChromaDB, Pydantic.
+  * **Pass 1:** Analyze context → produce intention + explanation
+  * **Pass 2:** Convert intention → strict JSON action schema
+* **Vector Memory** learns from user "Yes/No" feedback
+* **Safety Rule Layer** blocks harmful or illogical actions
 
-Flow:
+---
 
-Decision Graph: A simple logic engine runs first (e.g., IF room_empty AND lights_on THEN...).
+## 🔸 **3. ACTION Layer**
 
-LLM Pipeline (Two-Pass):
+Executes validated, safe actions:
 
-Pass 1 (Reasoning): The LLM receives the context, memory, and decision graph output to form an intention and a human-friendly summary.
+* Talks to simulated or real IoT devices
+* Ensures parameters match device capability schema
+* Streams updates to React frontend
+* Logs every decision for debugging
 
-Pass 2 (Action): The LLM formats the intention into a strict Pydantic JSON schema for the ACTION layer.
+---
 
-Memory Hooks: User feedback is used to update the ChromaDB vector store.
+# 🚀 **Getting Started**
 
-Safety Rule Layer: A final check ensures the validated action doesn't violate hard-coded safety rules.
+## ✅ Requirements
 
-3. ACTION Layer (Module 3)
-This module executes the validated commands from the THINK layer and reports state back to the user.
+* **Python 3.11+**
+* **pip or Poetry**
+* **Google AI Studio API Key (Gemini)**
 
-Device Capability Schema: Each IoT device (even simulated) publishes a schema of its "functions" (["wash", "dry"]) and "parameters" ({"temp": [20, 50]}). The THINK layer uses this to validate commands.
+---
 
-State Stream: A WebSocket or Server-Sent Events (SSE) stream provides real-time updates to any connected frontend (e.g., React).
+## ✅ Installation
 
-Action Log: All actions, triggers, and user responses are logged to a database for debugging and pattern analysis.
+### **1. Clone Repository**
 
-💻 Technology Stack
-Backend: FastAPI, Pydantic (for strict data validation)
-
-AI & LLM: Google Gemini Flash 2.0
-
-Vector Database: ChromaDB
-
-Frontend (Recommended): React or Next.js
-
-Real-time: WebSockets or Server-Sent Events (SSE)
-
-Core: Python 3.11+
-
-🚀 Getting Started
-These instructions will get you a copy of the project up and running on your local machine for development and testing.
-
-Prerequisites
-Python 3.11+
-
-Poetry or pip with venv
-
-A Google AI Studio API Key for Gemini
-
-Installation
-Clone the repository:
-
-Bash
-
+```bash
 git clone https://github.com/HamzaDevv/Proactive-AIoT-Assistant.git
 cd Proactive-AIoT-Assistant
-Create a virtual environment:
+```
 
-Bash
+### **2. Create Virtual Environment**
 
+```bash
 python -m venv venv
-On Windows: .\venv\Scripts\activate
+```
 
-On macOS/Linux: source venv/bin/activate
+* Windows → `.\venv\Scripts\activate`
+* macOS/Linux → `source venv/bin/activate`
 
-Install dependencies: (Make sure you have a requirements.txt file in your root directory)
+### **3. Install Dependencies**
 
-Bash
-
+```bash
 pip install -r requirements.txt
-Set up environment variables: Create a .env file in the root directory and add your API keys:
+```
 
-Code snippet
+### **4. Setup Environment Variables**
 
+Create `.env` in your project root:
+
+```env
 GOOGLE_API_KEY="YOUR_GEMINI_API_KEY_HERE"
-Run the application: The project uses FastAPI. You can run it with uvicorn:
+```
 
-Bash
+### **5. Run Server**
 
+```bash
 uvicorn src.main:app --reload
-This will start the server at http://127.0.0.1:8000.
+```
 
-License
-This project is licensed under the MIT License - see the LICENSE file for details.
+App starts at:
+👉 **[http://127.0.0.1:8000](http://127.0.0.1:8000)**
 
-📁 Recommended File Structure & Basic Files
-To get you started, here is a recommended file structure based on the modular architecture from the PDF. You can create these folders and files to build your project.
+API docs available at:
+👉 **[http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)**
 
-Recommended Directory Tree
+---
+
+# 📁 **Project Structure**
+
+```
 Proactive-AIoT-Assistant/
-├── .gitignore               # (Content provided below)
-├── README.md                # (The file above)
-├── requirements.txt         # (Content provided below)
-├── .env                     # (For your API keys)
+├── README.md
+├── .gitignore
+├── requirements.txt
+├── .env
 └── src/
-    ├── __init__.py
-    ├── main.py              # (Your main FastAPI app)
+    ├── main.py
     │
-    ├── core/                # (Shared logic)
-    │   ├── __init__.py
-    │   ├── schemas.py       # (Pydantic models, e.g., ContextPacket)
-    │   └── logging_config.py # (Event logging setup)
+    ├── core/
+    │   ├── schemas.py
+    │   ├── logging_config.py
     │
-    ├── module_1_sense/      # (SENSE Layer)
-    │   ├── __init__.py
-    │   ├── sense_manager.py # (Orchestrates all plugins)
+    ├── module_1_sense/
+    │   ├── sense_manager.py
     │   └── plugins/
-    │       ├── __init__.py
-    │       ├── fit.py       # (Google Fit plugin)
-    │       ├── maps.py      # (Google Maps plugin)
-    │       ├── calendar.py  # (Google Calendar plugin)
-    │       └── camera.py    # (CCTV/Occupancy plugin)
+    │       ├── fit.py
+    │       ├── maps.py
+    │       ├── calendar.py
+    │       └── camera.py
     │
-    ├── module_2_think/      # (THINK Layer)
-    │   ├── __init__.py
-    │   ├── think_manager.py # (Main entrypoint for this layer)
-    │   ├── decision_graph.py # (Pre-LLM logic rules)
-    │   ├── llm_pipeline.py  # (Gemini two-pass logic)
-    │   ├── memory.py        # (ChromaDB connection and hooks)
-    │   └── safety.py        # (The final Safety Rule Layer)
+    ├── module_2_think/
+    │   ├── think_manager.py
+    │   ├── decision_graph.py
+    │   ├── llm_pipeline.py
+    │   ├── memory.py
+    │   └── safety.py
     │
-    ├── module_3_action/     # (ACTION Layer)
-    │   ├── __init__.py
-    │   ├── action_manager.py # (Receives commands, talks to devices)
-    │   ├── device_simulator.py # (Simulates IoT devices)
-    │   ├── schemas.py       # (Device Capability Schemas)
-    │   └── websocket_manager.py # (SSE/WebSocket stream)
-    │
-    └── frontend/                # (Your React app can live here)
-        └── ...
-Basic File Contents
-Here is the content for the basic files you should add to your repository.
+    └── module_3_action/
+        ├── action_manager.py
+        ├── device_simulator.py
+        ├── schemas.py
+        └── websocket_manager.py
+```
 
-1. .gitignore
-This file tells Git to ignore common Python files and environment folders.
+---
 
-Code snippet
+# 🔧 **Basic Files**
 
-# Virtual Environment
+### ✅ `.gitignore`
+
+```
 venv/
-.venv/
-env/
 .env
-
-# Python cache
 __pycache__/
 *.pyc
-*.pyo
-*.pyd
-
-# IDE / Editor
+.DS_Store
 .vscode/
 .idea/
-*.swp
-*.swo
+```
 
-# OS-specific
-.DS_Store
-Thumbs.db
-2. requirements.txt
-This lists the core dependencies mentioned in your architectural plan. You will need to add more as you build.
+### ✅ `requirements.txt`
 
-# Core Web Framework
+```
 fastapi
 uvicorn[standard]
-
-# Data Validation
 pydantic
-
-# LLM & AI
 google-generativeai
-
-# Vector Database
 chromadb
-
-# API Clients (examples)
 google-api-python-client
 google-auth-httplib2
 google-auth-oauthlib
-You can now create these files, git add ., git commit -m "Initial project structure", and git push them to your GitHub repository.
+```
+
+---
+
+# 📝 **License**
+
+This project is licensed under the **MIT License**.
+
+---
+
+# 🙌 Want to Continue?
+
+I can generate:
+
+✅ `src/main.py` (FastAPI entrypoint)
+✅ Full Pydantic schemas for Context Packet
+✅ Device Simulator code
+✅ Memory + LLM pipeline
+✅ React frontend starter template
+
+Which file should I generate next?
