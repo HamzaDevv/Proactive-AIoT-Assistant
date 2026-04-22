@@ -1,0 +1,432 @@
+================================================================================
+  SADAF — Proactive AIoT Home Assistant: Master Implementation Plan
+  Serverless-First Architecture  ·  Zero External Servers  ·  Local-Only
+================================================================================
+
+GUIDING PRINCIPLE: SERVERLESS-FIRST
+───────────────────────────────────
+Every component runs as an embedded library or in-process sub-process.
+No Docker. No separate database ports. No server management.
+The entire stack is `pip install` + a single `python run.py`.
+
+  ┌─────────────────────────────────────────────────────────────────┐
+  │                     Serverless Stack Summary                    │
+  ├────────────────────┬────────────────────────────────────────────┤
+  │  ChromaDB          │  REMOVED — replaced by Mem0 + PageIndex   │
+  │  Neo4j             │  REMOVED — replaced by Kuzu (embedded)    │
+  │                    │    or FalkorDBLite (sub-process, zero-cfg) │
+  │  Mem0              │  Evolving user habits & preference memory  │
+  │  PageIndex         │  Structured doc retrieval (manuals, rules) │
+  │  SQLite            │  Device state, event logs, preferences DB  │
+  │  Ollama            │  Local LLM & embeddings (already in use)   │
+  │  MQTT (Mosquitto)  │  Lightweight broker for ESP32 sensors      │
+  └────────────────────┴────────────────────────────────────────────┘
+
+================================================================================
+
+ARCHITECTURE OVERVIEW
+─────────────────────
+Three-layer cognitive model — SENSE → THINK → ACTION — with a
+device-agnostic "Cognitive Linker" and a Hybrid Reasoning Engine.
+
+Data flow:
+  Sensors/APIs  ──►  ContextPacket  ──►  THINK Pipeline  ──►  SuggestionSchema
+       ▲                                     │  ▲                    │
+       │            Hybrid Reasoning Engine   │  │                    ▼
+       │           ┌─────────────────────┐    │  │                 ACTION
+       │           │  Mem0 (habits)      │◄───┘  │                    │
+       │           │  PageIndex (docs)   │       │                    │
+       │           │  Kuzu (causality)   │       │                    │
+       │           │  SQLite (state)     │       │                    │
+       └───────────│─────────────────────│◄──────└──── Feedback ◄────┘
+                   └─────────────────────┘
+
+================================================================================
+
+PHASE 1 — SENSE LAYER (Multimodal Perception & Localization)
+─────────────────────────────────────────────────────────────
+Goal: Build a rich, identity-aware ContextPacket from heterogeneous
+      data sources using a plugin architecture.
+
+1.1  Sensor Plugin System                                        [DONE]
+     ✓ Base plugin interface (base_plugin.py)
+     ✓ Google Fit plugin — steps, heart rate, calories, sleep
+     ✓ Camera plugin — placeholder for vision inference
+     ✓ Location plugin — room-level awareness
+     ✓ SenseAggregator — concurrent plugin execution
+
+1.2  Environmental Sensor Integration (ESP32 / MQTT)             [TODO]
+     • ESP32 sensors → local MQTT broker (Mosquitto, runs as service)
+       publishing: temperature, humidity, ambient light, CO₂, PM2.5
+     • MQTT subscriber plugin ingests telemetry into ContextPacket
+     • Door/window contacts, vibration, power consumption monitors
+
+1.3  Human Activity Recognition (HAR)                            [TODO]
+     • Gradient-boosting HAR (LightGBM / EL-HARP) trained on temporal
+       sensor features → classify: sleeping, cooking, working, etc.
+     • Layout-agnostic CPD using TAD framework for activity transitions
+     • Feed HAR output (current_activity, confidence) into ContextPacket
+
+1.4  Indoor Localization (UWB)                                   [FUTURE]
+     • UWB tag-and-anchor for centimeter-level multi-occupant tracking
+     • Proximity-to-device mapping for localized actions
+
+1.5  Vision Pipeline                                             [TODO]
+     • Replace camera placeholder with Gemini Vision (already configured
+       as GEMINI_VISION_LLM) for scene understanding, occupancy
+       counting, fall/smoke detection
+
+================================================================================
+
+PHASE 2 — THINK LAYER (Hybrid Reasoning Engine)
+────────────────────────────────────────────────
+Goal: Replace the single-vector-DB approach with a Hybrid Reasoning
+      Engine combining Mem0 (evolving habits), PageIndex (structured
+      docs), and an embedded graph DB (causal reasoning).
+
+2.1  Two-Pass LLM Pipeline                                       [DONE]
+     ✓ Pass 1 (Reasoning) + Pass 2 (Structured JSON) via LCEL chains
+     ✓ Gemini 2.0 Flash as primary LLM
+
+2.2  Deterministic Decision Graph                                [DONE]
+     ✓ Rule-based candidate generation from context
+     ✓ Temperature, time-of-day, activity-based rules
+
+2.3  Safety Checker                                              [DONE]
+     ✓ Device blacklist, capability validation, parameter range checks
+
+2.4  Proactivity Budget                                          [DONE]
+     ✓ Cooldown-based throttle to prevent suggestion fatigue
+
+─── NEW: HYBRID REASONING ENGINE (replaces ChromaDB) ──────────────
+
+2.5  Mem0 — Evolving User Habit Memory                           [TODO]
+     WHY: Mem0 is a self-improving memory layer that automatically
+     extracts, stores, and evolves user preferences from conversations
+     and interactions. Unlike flat vector search, it understands that
+     preferences CHANGE over time and updates itself.
+
+     SETUP (fully local, no cloud):
+     • pip install mem0ai
+     • Configure with Ollama as BOTH the LLM and embedding provider
+       (no OpenAI API key needed):
+         config = {
+             "llm": {"provider": "ollama", "config": {"model": "llama3"}},
+             "embedder": {"provider": "ollama",
+                          "config": {"model": "nomic-embed-text"}},
+             "vector_store": {"provider": "qdrant",
+                              "config": {"collection_name": "sadaf_memory",
+                                         "path": "./mem0_qdrant"}}
+         }
+         m = Memory.from_config(MemoryConfig(**config))
+     • Alternatively use "lancedb" as vector store (pure Python,
+       zero-config, stores as Parquet files on disk)
+
+     ARCHITECTURE:
+     ├── User Memory: per-user preference profiles that evolve
+     │   "Hamza likes 22°C while working, 24°C while sleeping"
+     │   "Mom prefers bright warm lights in the kitchen"
+     ├── Session Memory: current conversation context and intent
+     ├── Agent Memory: learned patterns across all interactions
+     │   "When outdoor temp > 35°C, users always want AC at 22°C"
+     └── Automatic Conflict Resolution:
+         Mem0 handles contradictions — if user says "I like it cool"
+         but later says "24°C is fine", it updates, not duplicates
+
+     INTEGRATION POINTS:
+     • ThinkOrchestrator.process_context() calls mem0.search()
+       instead of ChromaStore.get_relevant_info()
+     • ThinkOrchestrator.store_user_confirmation() calls mem0.add()
+       instead of ChromaStore.add_document()
+     • mem0.update() called when user overrides AI decisions
+
+2.6  PageIndex — Structured Document Retrieval                   [TODO]
+     WHY: For device manuals, safety rulebooks, and appliance specs,
+     vector search gives ~50% accuracy ("vibes-based retrieval").
+     PageIndex uses hierarchical document trees and LLM reasoning
+     to achieve 98.7% accuracy on complex structured documents.
+
+     SETUP:
+     • pip install pageindex
+     • Feed structured PDFs: device manuals, safety protocols,
+       appliance technical specs, home wiring diagrams
+
+     HOW IT WORKS:
+     ┌─────────────────────────────────────────────────────┐
+     │ Traditional RAG:  chunk → embed → similarity search │
+     │ Result: "The AC manual says..." (maybe wrong page)  │
+     │                                                     │
+     │ PageIndex:  PDF → hierarchical tree → LLM navigates │
+     │ Result: exact page, exact spec, traceable path      │
+     └─────────────────────────────────────────────────────┘
+
+     WHAT GOES INTO PAGEINDEX:
+     ├── Device technical manuals (from manufacturers)
+     │   → "What is the max safe temp for smart_geyser_1?" → exact °C
+     ├── Safety rulebooks & building codes
+     │   → "Can induction run unattended?" → deterministic answer
+     ├── EUPont ontology documentation
+     │   → device capability mapping reference
+     └── Appliance wiring / installation guides
+
+     INTEGRATION:
+     • SafetyChecker queries PageIndex BEFORE allowing actions
+     • IoTGPT Derive stage uses PageIndex to look up exact device
+       capabilities instead of relying on LLM hallucination
+     • Answers are traceable: "Based on manual page 47, section 3.2"
+
+2.7  Embedded Graph DB — Causal Reasoning & Event Clock          [TODO]
+
+     OPTION A: Kuzu (RECOMMENDED for analytics)
+     ─────────────────────────────────────────
+     • pip install kuzu
+     • Embedded C++ engine, runs in-process (like SQLite for graphs)
+     • Stores as a folder on disk — Git-friendly, copyable, movable
+     • Cypher query language, 18x faster data ingestion than Neo4j
+     • Native LangChain integration (KuzuGraphQA)
+     • Best for: complex multi-hop analytical queries on event chains
+
+     OPTION B: FalkorDBLite (RECOMMENDED for simplicity)
+     ─────────────────────────────────────────────────────
+     • pip install falkordblite
+     • Launches a lightweight sub-process via Unix domain sockets
+     • Zero config, zero open ports, process isolation (crash-safe)
+     • Full Cypher support, identical API to full FalkorDB
+     • Migration path: swap one import to move to FalkorDB Cloud
+     • Best for: prototyping, simpler graph needs, easy setup
+
+     THE EVENT CLOCK (what the graph stores):
+     ├── Nodes: User, Device, Action, Sensor, Policy, Environment
+     ├── Edges: TRIGGERED_BY, APPLIED_POLICY, CAUSED, OVERRIDDEN_BY
+     └── Enables:
+         • "Why did the AC turn on at 3 AM?" → graph traversal shows
+           the full causal chain: sensor→policy→action
+         • "Show all times Hamza overrode a lighting decision" →
+           relationship query feeds back into Mem0 to update prefs
+         • Multi-occupant conflict detection via relationship analysis
+
+     HYBRID SEARCH PATTERN:
+     ┌──────────────────────────────────────────────────────────┐
+     │ User query: "Make the room comfortable"                  │
+     │                                                          │
+     │ 1. Mem0.search() → "Hamza likes 22°C, 60% humidity"     │
+     │ 2. PageIndex → "AC max cooling: 16°C, geyser max: 75°C" │
+     │ 3. Graph → "Last 3 times at this time, AC was set to 22" │
+     │ 4. LLM fuses all 3 → confident, grounded suggestion     │
+     └──────────────────────────────────────────────────────────┘
+
+2.8  IoTGPT Task Decomposition                                   [TODO]
+     • Decompose → Derive → Refine pipeline for complex commands
+     • DECOMPOSE: "prepare bedroom for sleep" → subtask list
+     • DERIVE: map subtasks to device APIs (use PageIndex for specs)
+     • REFINE: inject user prefs from Mem0 into parameters
+     • Cache successful decompositions in Mem0 agent memory
+
+2.9  Multi-Agent Orchestration (LangGraph)                       [TODO]
+     • Stateful decision graph with specialized agents:
+       Comfort Agent | Security Agent | Energy Agent | Wellness Agent
+     • Reflection cycles: verify outcomes via sensors, retry on failure
+     • Human-in-the-loop checkpoints for high-impact actions
+
+================================================================================
+
+PHASE 3 — COGNITIVE LINKER (Device-Agnostic Preference Mapping)
+───────────────────────────────────────────────────────────────
+Goal: Decouple preferences from hardware using environmental
+      properties and the EUPont ontology.
+
+3.1  Environmental Property Abstraction                          [TODO]
+     • Preference schema: temperature_celsius, brightness_lumens,
+       humidity_percent, noise_level_db, air_quality_index
+     • Per-user, per-activity, per-time profiles stored in Mem0
+       (evolving) and SQLite (structured backup)
+
+3.2  EUPont Ontology Integration                                 [TODO]
+     • Standardized trigger-action vocabulary
+     • New device → semantic mapping auto-identifies capabilities
+     • SWRL inference rules:
+       smoke_sensor(HIGH) ∧ HAR(unconscious) → emergency(TRUE)
+       time(22:00+) ∧ activity(sleeping) → brightness(0)
+     • EUPont documentation indexed by PageIndex for LLM grounding
+
+3.3  Adaptive Personalization Engine                             [TODO]
+     • Mahalanobis k-NN classifier for context-to-preference mapping
+     • Q-learning for long-term preference refinement from overrides
+     • Multi-occupant conflict resolution (weighted priority rules)
+     • ALL feedback loops write to Mem0 (evolving) + Graph (causal)
+
+================================================================================
+
+PHASE 4 — ACTION LAYER & INTEROPERABILITY
+─────────────────────────────────────────
+Goal: Execute suggestions safely with full feedback loops and
+      standardized protocols.
+
+4.1  Action Module Core                                          [TODO]
+     • action_api.py (FastAPI on port 8003):
+       POST /execute, GET /state, WebSocket /ws for live push
+     • device_manager.py:
+       Load devices.json, simulate states, MQTT publisher for ESP32
+     • index.html: live device states, suggestion history, overrides
+     • Device state persisted in SQLite (not in-memory)
+
+4.2  Model Context Protocol (MCP) Integration                    [TODO]
+     • MCP Server: expose home as tools/resources/prompts
+       Resources: sensor logs, energy data, device states
+       Tools: lock_door, set_temp, set_brightness, play_media
+       Prompts: "Sleep Mode", "Away Mode", "Panic"
+     • MCP Client: consume external tools (weather, calendar)
+
+4.3  Feedback Loop & Continuous Learning                         [TODO]
+     • Perception → Reasoning → Action → Reflection cycle
+     • On action: poll sensors to verify intended effect
+     • On user override: write to Mem0 (update preference) AND
+       Graph DB (record override event with full causal chain)
+     • store_user_confirmation() already partially implemented
+
+4.4  Home Assistant / Matter Bridge                              [FUTURE]
+     • HA REST/WebSocket API for 3000+ device integrations
+     • Matter protocol for direct local device communication
+
+================================================================================
+
+PHASE 5 — SECURITY & PRIVACY (Local-First, Zero Cloud)
+───────────────────────────────────────────────────────
+Goal: All data stays on-device. Secrets are injected just-in-time
+      and immediately scrubbed.
+
+5.1  Local-First Processing                                      [TODO]
+     • Primary inference: Apple Silicon (unified memory) or similar
+     • SLMs via Ollama (Llama-3 / Mistral) for 90% of tasks
+     • Cloud escalation (Gemini) only for complex reasoning
+     • All local files encrypted at rest: AES-256
+       - SQLite: SQLCipher extension for transparent encryption
+       - Mem0 vector store: encrypted disk volume or file-level
+       - Kuzu/FalkorDB data folder: encrypted at filesystem level
+
+5.2  Vault Layer — Just-in-Time Secret Injection                 [TODO]
+     • Lightweight vault (HashiCorp Vault or simpler self-hosted):
+       - Stores: API keys, user profiles, OAuth tokens
+       - Just-in-Time pattern:
+         1. Agent requests secret → vault authenticates agent (DID)
+         2. Vault injects credential into the specific tool call
+         3. Tool executes → vault immediately scrubs secret from
+            the LLM's context window and memory
+         4. Comprehensive audit log of every access
+     • For simpler setups: python-dotenv with encrypted .env files
+       using age or sops for git-safe secret management
+
+5.3  Zero-Trust Agent Authentication                             [TODO]
+     • DIDs for each AI agent — cryptographic identity proof
+     • OIDC flows for secure token exchange (least privilege)
+     • MCP tool scoping: each agent sees only its required tools
+
+5.4  Safety Guardrails (Non-LLM, Deterministic)                  [PARTIAL]
+     ✓ SafetyChecker with blacklist + parameter validation
+     • PageIndex-backed safety rules:
+       SafetyChecker queries PageIndex with "Is it safe to [action]?"
+       → gets deterministic answer from the actual device manual
+       → NOT from the LLM's training data
+     • Hard-coded rules that can NEVER be overridden by the LLM:
+       - No heating appliances when occupancy = 0
+       - Human approval required for door unlock
+       - Max geyser temp = 60°C regardless of user request
+       - Smoke/CO detection → immediate alert, suppress nothing
+
+================================================================================
+
+IMPLEMENTATION PRIORITY & ROADMAP
+─────────────────────────────────
+Each milestone produces a working system. The serverless constraint
+means every milestone is deployable with `pip install` + `python run.py`.
+
+ MILESTONE 1 — Working End-to-End Loop                  [CURRENT FOCUS]
+ ┌──────────────────────────────────────────────────────────────────────┐
+ │  • Complete ACTION_module (4.1) — device manager, API, frontend     │
+ │  • Wire SENSE → THINK → ACTION pipeline with simulated devices     │
+ │  • Persist device state in SQLite (embedded, no server)             │
+ │  • Verify with real Google Fit data + simulated sensors             │
+ └──────────────────────────────────────────────────────────────────────┘
+
+ MILESTONE 2 — Hybrid Reasoning Engine
+ ┌──────────────────────────────────────────────────────────────────────┐
+ │  • Replace ChromaDB with Mem0 (local Ollama config) (2.5)           │
+ │  • Integrate PageIndex for device manuals / safety docs (2.6)       │
+ │  • Deploy Kuzu or FalkorDBLite for event graph (2.7)                │
+ │  • Implement IoTGPT Decompose-Derive-Refine pipeline (2.8)         │
+ │  • Build the feedback loop: action → verify → learn (4.3)          │
+ └──────────────────────────────────────────────────────────────────────┘
+
+ MILESTONE 3 — Device-Agnostic Intelligence
+ ┌──────────────────────────────────────────────────────────────────────┐
+ │  • Environmental property abstraction stored in Mem0 (3.1)          │
+ │  • EUPont ontology docs indexed by PageIndex (3.2)                  │
+ │  • Adaptive personalization with Q-learning feedback (3.3)          │
+ └──────────────────────────────────────────────────────────────────────┘
+
+ MILESTONE 4 — Multi-Agent & Real Sensors
+ ┌──────────────────────────────────────────────────────────────────────┐
+ │  • LangGraph multi-agent orchestration (2.9)                        │
+ │  • ESP32 MQTT sensor integration (1.2)                              │
+ │  • HAR model training & deployment (1.3)                            │
+ │  • Vision pipeline with Gemini (1.5)                                │
+ └──────────────────────────────────────────────────────────────────────┘
+
+ MILESTONE 5 — Production & Security Hardening
+ ┌──────────────────────────────────────────────────────────────────────┐
+ │  • MCP server/client architecture (4.2)                             │
+ │  • Vault layer + JIT secret injection (5.2)                         │
+ │  • Zero-trust DID auth for agents (5.3)                             │
+ │  • File-level encryption for all local stores (5.1)                 │
+ │  • Home Assistant / Matter bridge (4.4)                             │
+ └──────────────────────────────────────────────────────────────────────┘
+
+================================================================================
+
+TECHNOLOGY STACK SUMMARY (pip install only)
+───────────────────────────────────────────
+  Core Framework:     FastAPI + Uvicorn (3 microservices)
+  LLM:                Gemini 2.0 Flash (cloud) + Ollama Llama-3 (local)
+  Embeddings:         Ollama nomic-embed-text (local)
+  Habit Memory:       Mem0 (pip install mem0ai) — local Ollama mode
+  Document Retrieval: PageIndex (pip install pageindex)
+  Graph DB:           Kuzu (pip install kuzu)
+                      OR FalkorDBLite (pip install falkordblite)
+  Relational State:   SQLite (stdlib) + SQLCipher for encryption
+  IoT Comms:          MQTT (paho-mqtt) → Mosquitto broker
+  Orchestration:      LangGraph (pip install langgraph)
+  Hardware:           ESP32/Arduino (sensors) → Mac Mini/RPi (brain)
+
+================================================================================
+
+WHY THIS STACK BEATS THE PREVIOUS ONE
+──────────────────────────────────────
+  ┌───────────────┬───────────────────────┬──────────────────────────┐
+  │  Concern       │  Old Stack             │  New Serverless Stack    │
+  ├───────────────┼───────────────────────┼──────────────────────────┤
+  │  User Memory   │  ChromaDB (flat)       │  Mem0 (self-evolving)    │
+  │  Doc Retrieval │  Vector similarity     │  PageIndex (98.7% acc.)  │
+  │  Graph DB      │  Neo4j (server proc)   │  Kuzu/FalkorDB (embed.)  │
+  │  Deployment    │  Docker + ports        │  pip install + run.py    │
+  │  Encryption    │  Database-level        │  File-level + JIT vault  │
+  │  Preference    │  Static embeddings     │  Evolving + Q-learning   │
+  │  Safety        │  LLM-prompted rules    │  PageIndex + manual data │
+  └───────────────┴───────────────────────┴──────────────────────────┘
+
+================================================================================
+
+KEY RESEARCH REFERENCES
+───────────────────────
+• HARMONY Framework (IEEE) — multimodal LLM agents via MCP
+• IoTGPT (arXiv) — Decompose-Derive-Refine for IoT task decomposition
+• Mem0 — Self-improving memory layer (mem0.ai, github.com/mem0ai/mem0)
+• PageIndex — Hierarchical document retrieval (pageindex.ai, Vectify AI)
+• Kuzu — Embedded graph DB (kuzudb.com, github.com/kuzudb/kuzu)
+• FalkorDBLite — Serverless graph (falkordb.com/falkordblite)
+• EL-HARP — Gradient-boosting HAR with LightGBM
+• TAD Framework — Layout-agnostic CPD for activity recognition
+• LangGraph — Stateful multi-agent orchestration
+• MCP Specification — Standardized LLM-to-tool protocol
+• EUPont Ontology — Device-agnostic trigger-action vocabulary
+
+================================================================================
